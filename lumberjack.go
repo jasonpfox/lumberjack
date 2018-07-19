@@ -386,9 +386,10 @@ func (l *Logger) millRunOnce() error {
 		}
 		files = remaining
 	}
+	now := l.getTime()
 	if l.MaxAge > 0 {
 		diff := time.Duration(int64(24*time.Hour) * int64(l.MaxAge))
-		cutoff := l.getTime().Add(-1 * diff)
+		cutoff := now.Add(-1 * diff)
 
 		var remaining []LogInfo
 		for _, f := range files {
@@ -397,6 +398,16 @@ func (l *Logger) millRunOnce() error {
 			} else {
 				remaining = append(remaining, f)
 			}
+		}
+		files = remaining
+	}
+	// purge any files from future times
+	for _, f := range files {
+		var remaining []LogInfo
+		if now.Before(f.Timestamp) {
+			remove = append(remove, f)
+		} else {
+			remaining = append(remaining, f)
 		}
 		files = remaining
 	}
