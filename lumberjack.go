@@ -199,6 +199,18 @@ func (l *Logger) close() error {
 	return err
 }
 
+// Reset causes any previous orphaned file to be deleted and start fresh with
+// a new file, appliable when restaring logger and the proper time to mark the
+// old file closed is not known.
+func (l *Logger) Reset() error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	err := l.close()
+	name := l.filename()
+	_ = os.Remove(name)
+	return err
+}
+
 // Rotate causes Logger to close the existing log file and immediately create a
 // new one.  This is a helper function for applications that want to initiate
 // rotations outside of the normal rotation rules, such as in response to
