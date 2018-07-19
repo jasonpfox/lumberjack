@@ -352,11 +352,11 @@ func (l *Logger) millRunOnce() error {
 		return err
 	}
 
-	var compress, remove []logInfo
+	var compress, remove []LogInfo
 
 	if l.MaxBackups > 0 && l.MaxBackups < len(files) {
 		preserved := make(map[string]bool)
-		var remaining []logInfo
+		var remaining []LogInfo
 		for _, f := range files {
 			// Only count the uncompressed log file or the
 			// compressed log file, not both.
@@ -378,9 +378,9 @@ func (l *Logger) millRunOnce() error {
 		diff := time.Duration(int64(24*time.Hour) * int64(l.MaxAge))
 		cutoff := l.getTime().Add(-1 * diff)
 
-		var remaining []logInfo
+		var remaining []LogInfo
 		for _, f := range files {
-			if f.timestamp.Before(cutoff) {
+			if f.Timestamp.Before(cutoff) {
 				remove = append(remove, f)
 			} else {
 				remaining = append(remaining, f)
@@ -436,14 +436,14 @@ func (l *Logger) mill() {
 	}
 }
 
-// oldLogFiles returns the list of backup log files stored in the same
+// OldFiles returns the list of backup log files stored in the same
 // directory as the current log file, sorted by ModTime
-func (l *Logger) OldFiles() ([]logInfo, error) {
+func (l *Logger) OldFiles() ([]LogInfo, error) {
 	files, err := ioutil.ReadDir(l.dir())
 	if err != nil {
 		return nil, fmt.Errorf("can't read log file directory: %s", err)
 	}
-	logFiles := []logInfo{}
+	logFiles := []LogInfo{}
 
 	prefix, ext := l.prefixAndExt()
 
@@ -452,11 +452,11 @@ func (l *Logger) OldFiles() ([]logInfo, error) {
 			continue
 		}
 		if t, err := l.timeFromName(f.Name(), prefix, ext); err == nil {
-			logFiles = append(logFiles, logInfo{t, f})
+			logFiles = append(logFiles, LogInfo{t, f})
 			continue
 		}
 		if t, err := l.timeFromName(f.Name(), prefix, ext+compressSuffix); err == nil {
-			logFiles = append(logFiles, logInfo{t, f})
+			logFiles = append(logFiles, LogInfo{t, f})
 			continue
 		}
 		// error parsing means that the suffix at the end was not generated
@@ -559,18 +559,18 @@ func compressLogFile(src, dst string) (err error) {
 	return nil
 }
 
-// logInfo is a convenience struct to return the filename and its embedded
+// LogInfo is a convenience struct to return the filename and its embedded
 // timestamp.
-type logInfo struct {
-	timestamp time.Time
+type LogInfo struct {
+	Timestamp time.Time
 	os.FileInfo
 }
 
 // byFormatTime sorts by newest time formatted in the name.
-type byFormatTime []logInfo
+type byFormatTime []LogInfo
 
 func (b byFormatTime) Less(i, j int) bool {
-	return b[i].timestamp.After(b[j].timestamp)
+	return b[i].Timestamp.After(b[j].Timestamp)
 }
 
 func (b byFormatTime) Swap(i, j int) {
