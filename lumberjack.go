@@ -194,6 +194,10 @@ func (l *Logger) close() error {
 	if l.file == nil {
 		return nil
 	}
+	// add postpend
+	if len(l.Postpend) > 0 {
+		l.file.Write(l.Postpend)
+	}
 	err := l.file.Close()
 	l.file = nil
 	return err
@@ -226,10 +230,6 @@ func (l *Logger) Rotate() error {
 // (if it exists), opens a new file with the original filename, and then runs
 // post-rotation processing and removal.
 func (l *Logger) rotate() error {
-	// add postpend
-	if len(l.Postpend) > 0 {
-		l.file.Write(l.Postpend)
-	}
 	if err := l.close(); err != nil {
 		return err
 	}
