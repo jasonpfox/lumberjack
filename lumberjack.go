@@ -270,7 +270,8 @@ func (l *Logger) openNew() error {
 	// we use truncate here because this should only get called when we've moved
 	// the file ourselves. if someone else creates the file in the meantime,
 	// just wipe out the contents.
-	f, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode)
+	// added append to allow concurrent trahdsafe writes on Linux up to 4k
+	f, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_TRUNC|O_APPEND, mode)
 	if err != nil {
 		return fmt.Errorf("can't open new logfile: %s", err)
 	}
