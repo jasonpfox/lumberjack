@@ -121,6 +121,10 @@ type Logger struct {
 	// are allowed to push a file over nominal MaxKB
 	Postpend []byte
 
+	// TimeFormat is the time format to use in filename
+	// defaults to "2006-01-02T15-04-05.000" if not set
+	TimeFormat string
+
 	size int64
 	file *os.File
 	mu   sync.Mutex
@@ -256,7 +260,7 @@ func (l *Logger) openNew() error {
 		mode = info.Mode()
 		// move the existing file
 
-		newname := backupName(name, l.getTime())
+		newname := l.backupName(name, l.getTime())
 		if err := os.Rename(name, newname); err != nil {
 			return fmt.Errorf("can't rename log file: %s", err)
 		}
@@ -270,8 +274,7 @@ func (l *Logger) openNew() error {
 	// we use truncate here because this should only get called when we've moved
 	// the file ourselves. if someone else creates the file in the meantime,
 	// just wipe out the contents.
-	// added append to allow concurrent trahdsafe writes on Linux up to 4k
-	f, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_TRUNC|O_APPEND, mode)
+	f, err := os.OpenFile(name, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, mode)
 	if err != nil {
 		return fmt.Errorf("can't open new logfile: %s", err)
 	}
@@ -287,13 +290,16 @@ func (l *Logger) openNew() error {
 // backupName creates a new filename from the given name, inserting a timestamp
 // between the filename and the extension, using the local time if requested
 // (otherwise UTC).
-func backupName(name string, t time.Time) string {
+func (l *Logger) backupName(name string, t time.Time) string {
+	if len(l.TimeFormat) == 0 {
+		l.TimeFormat == backupTimeFormat
+	}
 	dir := filepath.Dir(name)
 	filename := filepath.Base(name)
 	ext := filepath.Ext(filename)
 	prefix := filename[:len(filename)-len(ext)]
 
-	timestamp := t.Format(backupTimeFormat)
+	timestamp := t.Format(l.TimeFormat)
 	return filepath.Join(dir, fmt.Sprintf("%s-%s%s", prefix, timestamp, ext))
 }
 
@@ -496,6 +502,10 @@ func (l *Logger) OldFiles() ([]LogInfo, error) {
 // the filename's prefix and extension. This prevents someone's filename from
 // confusing time.parse.
 func (l *Logger) timeFromName(filename, prefix, ext string) (time.Time, error) {
+	if len(l.TimeFormat) == 0 {
+		l.TimeFormat == backupTimeFormat
+	}
+
 	if !strings.HasPrefix(filename, prefix) {
 		return time.Time{}, errors.New("mismatched prefix")
 	}
@@ -503,7 +513,7 @@ func (l *Logger) timeFromName(filename, prefix, ext string) (time.Time, error) {
 		return time.Time{}, errors.New("mismatched extension")
 	}
 	ts := filename[len(prefix) : len(filename)-len(ext)]
-	return time.Parse(backupTimeFormat, ts)
+	return time.Parse(l.TimeFormat, ts)
 }
 
 // max returns the maximum size in bytes of log files before rolling.
