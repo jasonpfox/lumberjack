@@ -292,7 +292,7 @@ func (l *Logger) openNew() error {
 // (otherwise UTC).
 func (l *Logger) backupName(name string, t time.Time) string {
 	if len(l.TimeFormat) == 0 {
-		l.TimeFormat == backupTimeFormat
+		l.TimeFormat = backupTimeFormat
 	}
 	dir := filepath.Dir(name)
 	filename := filepath.Base(name)
@@ -503,7 +503,7 @@ func (l *Logger) OldFiles() ([]LogInfo, error) {
 // confusing time.parse.
 func (l *Logger) timeFromName(filename, prefix, ext string) (time.Time, error) {
 	if len(l.TimeFormat) == 0 {
-		l.TimeFormat == backupTimeFormat
+		l.TimeFormat = backupTimeFormat
 	}
 
 	if !strings.HasPrefix(filename, prefix) {
