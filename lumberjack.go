@@ -186,6 +186,33 @@ func (l *Logger) Write(p []byte) (n int, err error) {
 	return n, err
 }
 
+// FrorceWrite  writes the data to file regardless of size limits,
+// useful for multi-oart writes that must go to the same file
+func (l *Logger) ForceWrite(p []byte) (n int, err error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if l.file == nil {
+		if err = l.openExistingOrNew(len(p)); err != nil {
+			return 0, err
+		}
+	}
+
+	if len(l.Interim) > 0 && // interim buffer to add between writes
+		l.size > int64(len(l.Prepend)) { // not at start of file, so need interim
+		// prepend l.Interim to buffer to write to file
+		newp := make([]byte, len(l.Interim)+len(p))
+		copy(newp, l.Interim)
+		copy(newp[len(l.Interim):], p)
+		p = newp
+	}
+
+	n, err = l.file.Write(p)
+	l.size += int64(n)
+
+	return n, err
+}
+
 // Close implements io.Closer, and closes the current logfile.
 func (l *Logger) Close() error {
 	l.mu.Lock()
